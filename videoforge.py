@@ -34,7 +34,14 @@ FFMPEG = forge.FFMPEG
 HERE = Path(__file__).resolve().parent
 VIDEO_DIR = HERE / "input" / "videos"
 WORK = HERE / "work_video"
-PACK_ANIM = HERE / "build" / "mature" / "pet" / "mature-animation"
+
+
+def pack_anim_dir(prefix: str) -> Path:
+    """宠物包动画目录：build/<prefix>/pet/<prefix>-animation/（由 forge.py 生成）"""
+    return HERE / "build" / prefix / "pet" / f"{prefix}-animation"
+
+
+PACK_ANIM = pack_anim_dir("mature")   # 默认值；main() 会按 --prefix 覆盖
 
 CANVAS = (960, 540)     # 比 640x360 高一档：屏幕显示时是「缩小」而不是「放大」，所以更锐
 TARGET_H = 495          # 角色在画布里的高度（= 540 × 0.9167）
@@ -238,10 +245,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", default="")
     ap.add_argument("--preview", action="store_true")
+    ap.add_argument("--prefix", default="mature",
+                    help="目标宠物包前缀（对应 forge.py 的 --prefix）")
     args = ap.parse_args()
 
+    global PACK_ANIM
+    PACK_ANIM = pack_anim_dir(args.prefix)
+
     if not PACK_ANIM.exists():
-        raise SystemExit(f"找不到宠物包动画目录：{PACK_ANIM}\n先跑 forge.py 生成基础包")
+        raise SystemExit(f"找不到宠物包动画目录：{PACK_ANIM}\n"
+                         f"先跑：python forge.py --prefix {args.prefix} ...")
 
     vids = sorted(p for p in VIDEO_DIR.glob("*") if p.suffix.lower() in VIDEO_EXT)
     if not vids:

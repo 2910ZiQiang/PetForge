@@ -30,30 +30,83 @@ from pathlib import Path
 
 from PIL import Image
 
-# ---------------------------------------------------------------- 常量
+# ---------------------------------------------------------------- 环境探测
 
 def _find_ffmpeg() -> Path:
-    cand = [
-        Path(r"C:\APP\deepseek\.caches\ffget\node_modules\.pnpm"
-             r"\@ffmpeg-installer+win32-x64@4.1.0\node_modules"
-             r"\@ffmpeg-installer\win32-x64\ffmpeg.exe"),
-    ]
-    for c in cand:
-        if c.exists():
-            return c
-    root = Path(r"C:\APP\deepseek\.caches\ffget")
-    if root.exists():
-        for p in root.rglob("ffmpeg.exe"):
+    """按优先级查找 ffmpeg：环境变量 > PATH > 常见位置。
+
+    必须是**完整构建**（含 libvpx-vp9 编码器 + webm muxer）。
+    部分软件自带的 ffmpeg 是 --disable-everything 精简构建，会在编码时直接失败。
+    """
+    env = os.environ.get("PETFORGE_FFMPEG")
+    if env and Path(env).exists():
+        return Path(env)
+
+    which = shutil.which("ffmpeg")
+    if which:
+        return Path(which)
+
+    # 约定的本地位置（不纳入版本控制，见 .gitignore）
+    here = Path(__file__).resolve().parent
+    for p in (here / ".caches" / "ffmpeg.exe",
+              here / ".caches" / "bin" / "ffmpeg.exe",
+              Path.home() / ".cache" / "petforge" / "ffmpeg.exe",
+              Path("C:/ffmpeg/bin/ffmpeg.exe")):
+        if p.exists():
             return p
-    return cand[0]
+
+    # npm 包 @ffmpeg-installer 的二进制（完整构建，含 VP9 编码器）
+    for root in (here, Path.cwd()):
+        for pattern in ("node_modules/@ffmpeg-installer/*/ffmpeg.exe",
+                        "node_modules/.pnpm/@ffmpeg-installer*/node_modules/@ffmpeg-installer/*/ffmpeg.exe"):
+            for p in root.glob(pattern):
+                return p
+
+    return Path("ffmpeg")   # 交给 PATH，找不到时由 check_ffmpeg 报错
+
+
+def check_ffmpeg(path: Path) -> None:
+    """校验 ffmpeg 能力，缺失时给出可操作的提示而不是让人对着报错发呆。"""
+    try:
+        enc = subprocess.run([str(path), "-hide_banner", "-encoders"],
+                             capture_output=True, text=True, timeout=60).stdout
+        mux = subprocess.run([str(path), "-hide_banner", "-muxers"],
+                             capture_output=True, text=True, timeout=60).stdout
+    except (OSError, subprocess.SubprocessError):
+        raise SystemExit(
+            f"找不到可用的 ffmpeg：{path}\n"
+            "请安装完整版 ffmpeg，或用环境变量指定：\n"
+            "  set PETFORGE_FFMPEG=D:\\ffmpeg\\bin\\ffmpeg.exe"
+        )
+    if "libvpx-vp9" not in enc:
+        raise SystemExit(f"{path} 缺少 libvpx-vp9 编码器（疑似不含 VP9 的精简构建）")
+    if "webm" not in mux:
+        raise SystemExit(f"{path} 不支持 webm 封装（疑似不含 webm muxer 的精简构建）")
 
 
 FFMPEG = _find_ffmpeg()
 
-PLUGIN_DIR = Path(os.environ["USERPROFILE"]) / ".dsh" / "profiles" / "desktop" / "node_modules" / "dsh-pet"
+
+def _find_plugin_dir() -> Path:
+    """定位 dsh-pet 插件目录：环境变量 > 扫描 ~/.dsh/profiles/*/node_modules/dsh-pet。"""
+    env = os.environ.get("DSH_PET_DIR")
+    if env and Path(env).exists():
+        return Path(env)
+
+    profiles = Path.home() / ".dsh" / "profiles"
+    if profiles.exists():
+        for prof in sorted(profiles.iterdir()):
+            cand = prof / "node_modules" / "dsh-pet"
+            if cand.exists():
+                return cand
+
+    return profiles / "desktop" / "node_modules" / "dsh-pet"
+
+
+PLUGIN_DIR = _find_plugin_dir()
 DEFAULT_CONFIG = PLUGIN_DIR / "assets" / "config.jsonc"
 BUNDLED_WEBM = PLUGIN_DIR / "assets" / "webm"
-USER_PET_DIR = Path(os.environ["USERPROFILE"]) / ".dsh" / "dsh-pet" / "pet"
+USER_PET_DIR = Path.home() / ".dsh" / "dsh-pet" / "pet"
 
 CANVAS = (640, 360)
 FPS = 24

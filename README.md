@@ -143,8 +143,35 @@ PetForge/
 ## 环境要求
 
 - Python 3.10+，`Pillow`、`numpy`
-- **完整版 ffmpeg**（需 `libvpx-vp9` 编码器 + `webm` muxer）
-  - 精简构建会在编码时直接失败，`forge.py` 启动时会探测路径
+- **完整版 ffmpeg**：必须含 `libvpx-vp9` 编码器与 `webm` muxer
+  - 很多软件（IDE、播放器）自带的 ffmpeg 是 `--disable-everything` 精简构建，
+    没有 VP9 编码器也不支持 webm 封装——**这类构建会在编码时直接失败**
+  - Windows 可用 npm 包 `@ffmpeg-installer/win32-x64`（包内直接带完整二进制）
+
+### 路径探测顺序
+
+脚本不硬编码任何机器路径，按下面的顺序自动查找：
+
+**ffmpeg**
+
+1. 环境变量 `PETFORGE_FFMPEG`
+2. 系统 `PATH`
+3. `<项目>/.caches/ffmpeg.exe`（约定的本地位置，已在 `.gitignore` 中排除）
+4. `~/.cache/petforge/ffmpeg.exe`、`C:/ffmpeg/bin/ffmpeg.exe`
+5. 项目内 `node_modules/@ffmpeg-installer/*/ffmpeg.exe`
+
+找不到或不满足能力要求时，会直接给出可操作的提示，而不是抛一句看不懂的报错。
+
+**dsh-pet 插件目录**
+
+1. 环境变量 `DSH_PET_DIR`
+2. 扫描 `~/.dsh/profiles/*/node_modules/dsh-pet`
+
+```bash
+# 手动指定（可选）
+set PETFORGE_FFMPEG=D:\ffmpeg\bin\ffmpeg.exe
+set DSH_PET_DIR=C:\Users\me\.dsh\profiles\desktop\node_modules\dsh-pet
+```
 
 ---
 

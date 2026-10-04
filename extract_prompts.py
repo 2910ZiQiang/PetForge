@@ -7,8 +7,9 @@ import re
 import sys
 from pathlib import Path
 
-SRC = Path(r"C:\APP\deepseek\PetForge\prompts-official\桌面宠物 10 秒动作提示词.md")
-OUT = Path(r"C:\APP\deepseek\PetForge\prompts-ready")
+HERE = Path(__file__).resolve().parent
+SRC = HERE / "prompts-official" / "桌面宠物 10 秒动作提示词.md"
+OUT = HERE / "prompts-ready"
 
 # 优先做这些（3 个必做 + 9 个推荐）
 MUST = ["待机呼吸休闲", "点击回应-开心跃动", "被鼠标拖拽悬空反馈"]
