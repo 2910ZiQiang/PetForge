@@ -1,0 +1,34 @@
+# ---- 第三方素材与输入文件：不随本项目分发 ----
+# dsh-pet 的动画素材许可为「允许开源使用，禁止商用」，且非本项目作者所有
+input/
+prompts-official/
+
+# 由第三方提示词派生出的成品文件（用 extract_prompts.py 自行生成）
+prompts-ready/
+
+# ---- 构建产物与中间文件 ----
+build/
+work/
+work_video/
+*.webm
+*.mp4
+*.mov
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- 本地工具链（体积大，各人自行获取）----
+.caches/
+node_modules/
+ffmpeg.exe
