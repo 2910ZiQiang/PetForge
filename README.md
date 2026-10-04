@@ -18,7 +18,7 @@
 
 ---
 
-## 两个脚本
+## 三个脚本
 
 ### `forge.py` —— 静图 → 宠物包
 
@@ -47,6 +47,32 @@ python videoforge.py                      # 转换 input/videos/ 下全部
 python videoforge.py --only 待机呼吸休闲    # 只转一个
 python videoforge.py --preview            # 只导一帧预览，不编码
 ```
+
+### `install.py` —— 一键安装 + 热加载 + 验证
+
+生成完不用手动 `xcopy` 再 `curl`：
+
+```bash
+python install.py --prefix mature
+```
+
+它会依次：复制到插件的用户宠物目录 → 自动探测宿主端口 → `POST /reload` 热加载 →
+**回读 `/config` 验证宠物真的注册进去了**。
+
+```
+[3/4] 探测宿主并触发热加载
+  ✓ 宿主端口 19387
+  ✓ POST /reload → HTTP 200 {"reloading":true}
+[4/4] 验证宠物是否注册
+  [main]   蓝毛小女仆   id=main
+  [mature] 小鲸·成人版  id=mature1  ← 本次安装
+
+✅ 成功：宠物包「mature」已生效，无需重启。
+```
+
+设计上刻意区分了两种情况：
+**复制成功但宿主没运行** 时会明确说「文件已复制好，等宿主运行时重跑」，
+而不是把「命令没报错」当成「装好了」。
 
 ---
 
@@ -130,6 +156,7 @@ curl -X POST http://127.0.0.1:19387/dsh-pet-7340/reload
 PetForge/
 ├─ forge.py              静图 → 宠物包（6 模板 → 106 动画）
 ├─ videoforge.py         绿幕视频 → 透明动画（numpy 抠像 + 标定 + 编码）
+├─ install.py            一键安装 + 热加载 + 注册验证
 ├─ prep.py               抠像流水线（抠色 / 去绿溢 / 收边 / 颜色外扩）
 ├─ extract_prompts.py    从官方提示词文件抽出可直接粘贴的成品
 ├─ prompt-角色生成.md     生成成熟比例角色立绘的 AI 提示词
